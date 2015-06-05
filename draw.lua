@@ -188,6 +188,8 @@ function feval(x_arg)
     local dx = {}
     
     for t = seq_length,1,-1 do
+      dloss_x[t] = torch.ones(n_data, 1)
+      dloss_z[t] = torch.ones(n_data, 1)
       dx[t], dz[t], dlstm_c_dec[t-1], dlstm_h_dec[t-1], dcanvas[t-1] = unpack(decoder_clones[t]:backward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}, {dx_prediction[t], dx_error[t], dlstm_c_dec[t], dlstm_h_dec[t], dcanvas[t], dloss_x[t]}))
       dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t] = unpack(encoder_clones[t]:backward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t]}, {dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t]}))
     end
