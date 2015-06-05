@@ -169,7 +169,7 @@ function feval(x_arg)
       z[t], loss_z[t], lstm_c_enc[t], lstm_h_enc[t] = unpack(encoder_clones[t]:forward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t]}))
       x_prediction[t], x_error[t], lstm_c_dec[t], lstm_h_dec[t], canvas[t], loss_x[t] = unpack(decoder_clones[t]:forward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}))
       
-      loss = loss + torch.mean(loss_z) + torch.mean(loss_x)
+      loss = loss + torch.mean(loss_z[t]) + torch.mean(loss_x[t])
     end
     loss = loss / seq_length
 
@@ -184,8 +184,10 @@ function feval(x_arg)
     local dloss_z = {[seq_length] = torch.ones(n_data, 1)}
     local dloss_x = {[seq_length] = torch.ones(n_data, 1)}
     local dcanvas = {[seq_length] = torch.zeros(n_data, n_canvas)}
+    local dz = {}
+    local dx = {}
     
-    for t=opt.seq_length,1,-1 do
+    for t = seq_length,1,-1 do
       dx[t], dz[t], dlstm_c_dec[t-1], dlstm_h_dec[t-1], dcanvas[t-1] = unpack(decoder_clones[t]:backward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}, {dx_prediction[t], dx_error[t], dlstm_c_dec[t], dlstm_h_dec[t], dcanvas[t], dloss_x[t]}))
       dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t] = unpack(encoder_clones[t]:backward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t]}, {dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t]}))
     end
