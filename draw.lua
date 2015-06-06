@@ -207,7 +207,7 @@ end
 --
 optim_state = {learningRate = 1e-2}
 
-for i = 1, 100 do
+for i = 1, 200 do
   local _, loss = optim.adagrad(feval, params, optim_state)
 
   if i % 10 == 0 then
@@ -218,8 +218,13 @@ for i = 1, 100 do
 end
 
 
-print(x_prediction[10]:gt(0.5))
---print(x[1]:gt(0.5))
+--к чему стремимся
+print(x[1][1]:gt(0.5))
+
+--что получаем со временем
+for t = seq_length,1,-1 do
+  print(x_prediction[t][1]:gt(0.5))
+end
 --print(x_prediction[2]:gt(0.5))
 --print(x[2]:gt(0.5))
 --print(x_prediction[3]:gt(0.5))
