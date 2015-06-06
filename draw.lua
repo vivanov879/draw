@@ -6,7 +6,6 @@ require 'optim'
 require 'image'
 local model_utils=require 'model_utils'
 local mnist = require 'mnist'
-local LSTM = require 'LSTM'             -- LSTM timestep and utilities
 
 nngraph.setDebug(true)
 
