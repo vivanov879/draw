@@ -148,16 +148,16 @@ function feval(x_arg)
     grad_params:zero()
     
     ------------------- forward pass -------------------
-    local lstm_c_enc = {[0]=torch.zeros(n_data, rnn_size)}
-    local lstm_h_enc = {[0]=torch.zeros(n_data, rnn_size)}
-    local lstm_c_dec = {[0]=torch.zeros(n_data, rnn_size)}
-    local lstm_h_dec = {[0]=torch.zeros(n_data, rnn_size)}
-    local x_error = {[0]=torch.rand(n_data, n_features)}
-    local x_prediction = {}
-    local loss_z = {}
-    local loss_x = {}
-    local canvas = {[0]=torch.rand(n_data, n_canvas)}
-    local x = {}
+    lstm_c_enc = {[0]=torch.zeros(n_data, rnn_size)}
+    lstm_h_enc = {[0]=torch.zeros(n_data, rnn_size)}
+    lstm_c_dec = {[0]=torch.zeros(n_data, rnn_size)}
+    lstm_h_dec = {[0]=torch.zeros(n_data, rnn_size)}
+    x_error = {[0]=torch.rand(n_data, n_features)}
+    x_prediction = {}
+    loss_z = {}
+    loss_x = {}
+    canvas = {[0]=torch.rand(n_data, n_canvas)}
+    x = {}
     
     
     local loss = 0
@@ -174,19 +174,19 @@ function feval(x_arg)
 
     ------------------ backward pass -------------------
     -- complete reverse order of the above
-    local dlstm_c_enc = {[seq_length] = torch.zeros(n_data, rnn_size)}
-    local dlstm_h_enc = {[seq_length] = torch.zeros(n_data, rnn_size)}
-    local dlstm_c_dec = {[seq_length] = torch.zeros(n_data, rnn_size)}
-    local dlstm_h_dec = {[seq_length] = torch.zeros(n_data, rnn_size)}
-    local dx_error = {[seq_length] = torch.zeros(n_data, n_features)}
-    local dx_prediction = {}
-    local dloss_z = {}
-    local dloss_x = {}
-    local dcanvas = {[seq_length] = torch.zeros(n_data, n_canvas)}
-    local dz = {}
-    local dx1 = {}
-    local dx2 = {}
-    local de = {}
+    dlstm_c_enc = {[seq_length] = torch.zeros(n_data, rnn_size)}
+    dlstm_h_enc = {[seq_length] = torch.zeros(n_data, rnn_size)}
+    dlstm_c_dec = {[seq_length] = torch.zeros(n_data, rnn_size)}
+    dlstm_h_dec = {[seq_length] = torch.zeros(n_data, rnn_size)}
+    dx_error = {[seq_length] = torch.zeros(n_data, n_features)}
+    dx_prediction = {}
+    dloss_z = {}
+    dloss_x = {}
+    dcanvas = {[seq_length] = torch.zeros(n_data, n_canvas)}
+    dz = {}
+    dx1 = {}
+    dx2 = {}
+    de = {}
     
     for t = seq_length,1,-1 do
       dloss_x[t] = torch.ones(n_data, 1)
@@ -207,7 +207,7 @@ end
 --
 optim_state = {learningRate = 1e-2}
 
-for i = 1, 1000 do
+for i = 1, 100 do
   local _, loss = optim.adagrad(feval, params, optim_state)
 
   if i % 10 == 0 then
@@ -217,22 +217,13 @@ for i = 1, 1000 do
   end
 end
 
-e = torch.randn(n_data, n_z)
-z, loss_z = unpack(encoder:forward({features_input, e}))
-output, _ = unpack(decoder:forward({torch.zeros(features_input:size()), z}))
-print(output[1]:gt(0.5))
-print(features_input[1]:gt(0.5))
-print(output[2]:gt(0.5))
-print(features_input[2]:gt(0.5))
-print(output[3]:gt(0.5))
-print(features_input[3]:gt(0.5))
-print(output[4]:gt(0.5))
-print(features_input[4]:gt(0.5))
 
-
-z = torch.randn(n_data, n_z)
-output, _ = unpack(decoder:forward({torch.zeros(features_input:size()), z}))
-  for i = 1, 3 do
-  print(output[i]:gt(0.25))
-end
+print(x_prediction[10]:gt(0.5))
+--print(x[1]:gt(0.5))
+--print(x_prediction[2]:gt(0.5))
+--print(x[2]:gt(0.5))
+--print(x_prediction[3]:gt(0.5))
+--print(x[3]:gt(0.5))
+--print(x_prediction[4]:gt(0.5))
+--print(x[4]:gt(0.5))
 
