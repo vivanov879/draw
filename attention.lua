@@ -59,7 +59,6 @@ for i = 1, N do
     mu_j = nn.CAddTable()({gy, nn.MulConstant(j - N/2 - 1/2)(delta)})
     mu_i = nn.MulConstant(-1)(mu_i)
     mu_j = nn.MulConstant(-1)(mu_j)
-    
     d_i = nn.CAddTable()({mu_i, ascending_x})
     d_j = nn.CAddTable()({mu_j, ascending_y})
     d_i = nn.Power(2)(d_i)
@@ -68,12 +67,13 @@ for i = 1, N do
     exp_j = nn.CMulTable()({d_j, sigma})
     exp_i = nn.Exp()(exp_i)
     exp_j = nn.Exp()(exp_j)
-    filtered[#filtered + 1] = nn.Sum(3)(nn.Sum(2)(nn.CMulTable()({exp_i, exp_j, x})))
+    filtered[#filtered + 1] = nn.View(n_data, 1)(nn.Sum(2)(nn.Sum(3)(nn.CMulTable()({exp_i, exp_j, x}))))
   end
 end
     
-filtered_x = nn.JoinTable()(filtered)
+filtered_x = nn.JoinTable(2)(filtered)
 filtered_x = nn.Reshape(N, N)(filtered_x)
+
 
 m = nn.gModule({x, h_dec, ascending_x, ascending_y}, {filtered_x})
 
