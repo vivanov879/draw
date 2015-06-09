@@ -10,9 +10,10 @@ local mnist = require 'mnist'
 nngraph.setDebug(true)
 
 
-N = 3
-A = 2 
+N = 12
+A = 28
 h_dec_n = 100
+n_data = 2
 
 x = nn.Identity()()
 y = nn.Reshape(1,1)(x)
@@ -65,46 +66,48 @@ for i = 1, N do
     exp_j = nn.CMulTable()({d_j, sigma})
     exp_i = nn.Exp()(exp_i)
     exp_j = nn.Exp()(exp_j)
-    filtered[#filtered + 1] = nn.Sum(3)(nn.Sum(2)(nn.CMulTable()({exp_i, exp_j, x})))
+    filtered[#filtered + 1] = nn.View(n_data, 1)(nn.Sum(2)(nn.Sum(3)(nn.CMulTable()({exp_i, exp_j, x}))))
   end
 end
     
-filtered_x = nn.JoinTable()(filtered)
+filtered_x = nn.JoinTable(2)(filtered)
 filtered_x = nn.Reshape(N, N)(filtered_x)
+
 
 m = nn.gModule({x, gx_raw, gy_raw, delta_raw, sigma_raw, ascending_x, ascending_y}, {filtered_x})
 
-ascending_x = torch.zeros(A, A)
-ascending_y = torch.zeros(A, A)
-for i = 1, A do 
-  for j = 1, A do 
-    ascending_x[i][j] = i
-    ascending_y[i][j] = j
-  end
-end
 
---train
 trainset = mnist.traindataset()
 testset = mnist.testdataset()
-local n_data = 2
 
-x = torch.zeros(n_data, 28, 28)
+
+x = torch.zeros(n_data, A, A)
 for i = 1, n_data do
     x[{{i}, {}, {}}] = trainset[i].x:gt(125)
 end
+
+
+ascending_x = torch.zeros(n_data, A, A)
+ascending_y = torch.zeros(n_data, A, A)
+for k = 1, n_data do
+  for i = 1, A do 
+    for j = 1, A do 
+      ascending_x[k][i][j] = i
+      ascending_y[k][i][j] = j
+    end
+  end
+end
+
 
 gx = torch.zeros(n_data, A, A)
 gy = torch.zeros(n_data, A, A)
 sigma = torch.zeros(n_data, A, A)
 delta = torch.zeros(n_data, A, A)
 
+z = m:forward({x, gx, gy, delta, sigma, ascending_x, ascending_y})
 
-
-
-z = m:forward(x, gx, gy, delta, sigma, ascending_x, ascending_y)
-
-print(x)
-print(z)
+print(x:gt(0.5))
+print(z:gt(0.5))
 
 
 
