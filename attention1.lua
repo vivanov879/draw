@@ -10,7 +10,7 @@ local mnist = require 'mnist'
 nngraph.setDebug(true)
 
 
-N = 2
+N = 3
 A = 2 
 h_dec_n = 100
 
@@ -30,20 +30,18 @@ duplicate = nn.gModule({x}, {z})
 
 
 x = nn.Identity()()
-h_dec = nn.Identity()()
-gx = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
-gx = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
-gy = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
-delta = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
-gamma = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
-sigma = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
-delta = nn.Exp()(delta)
-gamma = nn.Exp()(gamma)
-sigma = nn.Exp()(sigma)
+
+gx_raw = nn.Identity()()
+gy_raw = nn.Identity()()
+sigma_raw = nn.Identity()()
+delta_raw = nn.Identity()()
+
+delta = nn.Exp()(delta_raw)
+sigma = nn.Exp()(sigma_raw)
 sigma = nn.Power(-2)(sigma)
 sigma = nn.MulConstant(-1/2)(sigma)
-gx = nn.AddConstant(1)(gx)
-gy = nn.AddConstant(1)(gy)
+gx = nn.AddConstant(1)(gx_raw)
+gy = nn.AddConstant(1)(gy_raw)
 gx = nn.MulConstant((A + 1) / 2)(gx)
 gy = nn.MulConstant((A + 1) / 2)(gy)
 delta = nn.MulConstant((math.max(A,A)-1)/(N-1))(delta)
@@ -59,7 +57,6 @@ for i = 1, N do
     mu_j = nn.CAddTable()({gy, nn.MulConstant(j - N/2 - 1/2)(delta)})
     mu_i = nn.MulConstant(-1)(mu_i)
     mu_j = nn.MulConstant(-1)(mu_j)
-    
     d_i = nn.CAddTable()({mu_i, ascending_x})
     d_j = nn.CAddTable()({mu_j, ascending_y})
     d_i = nn.Power(2)(d_i)
@@ -75,7 +72,7 @@ end
 filtered_x = nn.JoinTable()(filtered)
 filtered_x = nn.Reshape(N, N)(filtered_x)
 
-m = nn.gModule({x, h_dec, ascending_x, ascending_y}, {filtered_x})
+m = nn.gModule({x, gx_raw, gy_raw, delta_raw, sigma_raw, ascending_x, ascending_y}, {filtered_x})
 
 ascending_x = torch.zeros(A, A)
 ascending_y = torch.zeros(A, A)
@@ -86,8 +83,29 @@ for i = 1, A do
   end
 end
 
-print(ascending_x)
-print(ascending_y)
+--train
+trainset = mnist.traindataset()
+testset = mnist.testdataset()
+local n_data = 2
+
+x = torch.zeros(n_data, 28, 28)
+for i = 1, n_data do
+    x[{{i}, {}, {}}] = trainset[i].x:gt(125)
+end
+
+gx = torch.zeros(n_data, A, A)
+gy = torch.zeros(n_data, A, A)
+sigma = torch.zeros(n_data, A, A)
+delta = torch.zeros(n_data, A, A)
+
+
+
+
+z = m:forward(x, gx, gy, delta, sigma, ascending_x, ascending_y)
+
+print(x)
+print(z)
+
 
 
 
