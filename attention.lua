@@ -10,7 +10,6 @@ nngraph.setDebug(true)
 
 N = 12
 A = 28 
-B = 28
 h_dec_n = 100
 
 x = nn.Identity()()
@@ -21,7 +20,7 @@ for i = 1, A do
 end
 z = nn.JoinTable(2)(l)
 l = {}
-for i = 1, B do 
+for i = 1, A do 
   l[#l + 1] = nn.Copy()(z)  
 end
 z = nn.JoinTable(3)(l) 
@@ -42,8 +41,8 @@ sigma = nn.Exp()(sigma)
 gx = nn.AddConstant(1)(gx)
 gy = nn.AddConstant(1)(gy)
 gx = nn.MulConstant((A + 1) / 2)(gx)
-gy = nn.MulConstant((B + 1) / 2)(gy)
-delta = nn.MulConstant((math.max(A,B)-1)/(N-1))(delta)
+gy = nn.MulConstant((A + 1) / 2)(gy)
+delta = nn.MulConstant((math.max(A,A)-1)/(N-1))(delta)
 
 vozrast_x = nn.Identity()()
 vozrast_y = nn.Identity()()
@@ -73,4 +72,21 @@ filtered_x = nn.JoinTable()(filtered)
 filtered_x = nn.Reshape(N, N)(filtered_x)
 
 m = nn.gModule({x, h_dec, vozrast_x, vozrast_y}, {filtered_x})
+
+
+vozrast_x = torch.zeros(A, A)
+vozrast_y = torch.zeros(A, A)
+for i = 1, A do 
+  for j = 1, A do 
+    vozrast_x[i][j] = i
+    vozrast_y[i][j] = j
+  end
+end
+
+print(vozrast_x)
+print(vozrast_y)
+
+
+
+
 
