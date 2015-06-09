@@ -8,8 +8,8 @@ local model_utils=require 'model_utils'
 nngraph.setDebug(true)
 
 
-N = 12
-A = 28 
+N = 2
+A = 2 
 h_dec_n = 100
 
 x = nn.Identity()()
@@ -54,7 +54,7 @@ filtered = {}
 for i = 1, N do
   for j = 1, N do
     mu_i = nn.CAddTable()({gx, nn.MulConstant(i - N/2 - 1/2)(delta)})
-    mu_j = nn.CAddTable()({gx, nn.MulConstant(j - N/2 - 1/2)(delta)})
+    mu_j = nn.CAddTable()({gy, nn.MulConstant(j - N/2 - 1/2)(delta)})
     mu_i = nn.MulConstant(-1)(mu_i)
     mu_j = nn.MulConstant(-1)(mu_j)
     
@@ -74,7 +74,7 @@ filtered_x = nn.JoinTable()(filtered)
 filtered_x = nn.Reshape(N, N)(filtered_x)
 
 m = nn.gModule({x, h_dec, vozrast_x, vozrast_y}, {filtered_x})
-
+graph.dot(m.fg)
 
 vozrast_x = torch.zeros(A, A)
 vozrast_y = torch.zeros(A, A)
