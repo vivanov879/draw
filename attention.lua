@@ -65,7 +65,7 @@ for i = 1, N do
     exp_j = nn.CMulTable()({d_j, sigma})
     exp_i = nn.Exp()(exp_i)
     exp_j = nn.Exp()(exp_j)
-    filtered[#filtered + 1] = nn.CMulTable()({exp_i, exp_j, x})
+    filtered[#filtered + 1] = nn.Sum(3)(nn.Sum(2)(nn.CMulTable()({exp_i, exp_j, x})))
   end
 end
     
@@ -73,6 +73,4 @@ filtered_x = nn.JoinTable()(filtered)
 filtered_x = nn.Reshape(N, N)(filtered_x)
 
 m = nn.gModule({x, h_dec, vozrast_x, vozrast_y}, {filtered_x})
-
-
 
