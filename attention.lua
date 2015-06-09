@@ -55,6 +55,7 @@ for i = 1, N do
     mu_j = nn.CAddTable()({gx, nn.MulConstant(j - N/2 - 1/2)(delta)})
     mu_i = nn.MulConstant(-1)(mu_i)
     mu_j = nn.MulConstant(-1)(mu_j)
+    sigma = nn.Power(-2)(sigma)
     sigma = nn.MulConstant(-1/2)(sigma)
     d_i = nn.CAddTable()({mu_i, vozrast_x})
     d_j = nn.CAddTable()({mu_j, vozrast_y})
