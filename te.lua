@@ -29,7 +29,16 @@ duplicate = nn.gModule({x}, {z})
 
 x = torch.rand(3,1)
 z = duplicate:forward(x)
+print(x)
+print(z)
 
+x = nn.Identity()()
+z = duplicate(x)
+m = nn.gModule({x}, {z})
+
+
+x = torch.rand(3,1)
+z = m:forward(x)
 print(x)
 print(z)
 

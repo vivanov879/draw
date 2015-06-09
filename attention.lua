@@ -5,12 +5,13 @@ require 'nngraph'
 require 'optim'
 require 'image'
 local model_utils=require 'model_utils'
-local mnist = require 'mnist'
+nngraph.setDebug(true)
 
 
 N = 12
 A = 28 
 B = 28
+h_dec_n = 100
 
 x = nn.Identity()()
 y = nn.Reshape(1,1)(x)
@@ -27,16 +28,14 @@ z = nn.JoinTable(3)(l)
 duplicate = nn.gModule({x}, {z})
 
 
-
-h_dec_n = 100
 x = nn.Identity()()
 h_dec = nn.Identity()()
-gx = nn.Reshape(A, B)(nn.Linear(h_dec_n, A * B)(h_dec))
-gx = nn.Reshape(A, B)(nn.Linear(h_dec_n, A * B)(h_dec))
-gy = nn.Reshape(A, B)(nn.Linear(h_dec_n, A * B)(h_dec))
-delta = nn.Reshape(A, B)(nn.Linear(h_dec_n, A * B)(h_dec))
-gamma = nn.Reshape(A, B)(nn.Linear(h_dec_n, A * B)(h_dec))
-sigma = nn.Reshape(A, B)(nn.Linear(h_dec_n, A * B)(h_dec))
+gx = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
+gx = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
+gy = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
+delta = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
+gamma = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
+sigma = duplicate(nn.Linear(h_dec_n, 1)(h_dec))
 delta = nn.Exp()(delta)
 gamma = nn.Exp()(gamma)
 sigma = nn.Exp()(sigma)
