@@ -54,8 +54,8 @@ end
 
 filterbank_x = genr_filters(gx)
 filterbank_y = genr_filters(gy)
-patch = nn.MM()({filterbank_x, x})
-patch = nn.MM(false, true)({patch, filterbank_y})
+patch = nn.MM(true, false)({filterbank_y, x})
+patch = nn.MM()({patch, filterbank_x})
 
 m = nn.gModule({x, gx_raw, gy_raw, delta_raw, sigma_raw, ascending}, {patch})
 
@@ -63,12 +63,7 @@ m = nn.gModule({x, gx_raw, gy_raw, delta_raw, sigma_raw, ascending}, {patch})
 trainset = mnist.traindataset()
 testset = mnist.testdataset()
 
-
-x = torch.zeros(n_data, A, A)
-for i = 1, n_data do
-    x[{{i}, {}, {}}] = trainset[i].x:gt(125)
-end
-
+x = torch.load('read_patches')
 
 ascending = torch.zeros(n_data, A)
 for k = 1, n_data do
@@ -87,9 +82,6 @@ z = m:forward({x, gx, gy, delta, sigma, ascending})
 
 print(x:gt(0.5))
 print(z:gt(0.5))
-
-
-
 
 
 
