@@ -13,7 +13,7 @@ nngraph.setDebug(true)
 n_features = 28 * 28
 n_z = 20
 rnn_size = 200
-n_canvas = 300
+n_canvas = 28 * 28
 seq_length = 10
 
 
@@ -98,21 +98,12 @@ next_h           = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
 write_layer = nn.Linear(rnn_size, n_canvas)(next_h)
 next_canvas = nn.CAddTable()({prev_canvas, write_layer})
 
-mu = nn.Linear(n_canvas, n_features)(next_canvas)
-sigma = nn.Linear(n_canvas, n_features)(next_canvas)
-sigma = nn.Exp()(sigma)
+mu = nn.Sigmoid()(next_canvas)
 
 neg_mu = nn.MulConstant(-1)(mu)
 d = nn.CAddTable()({x, neg_mu})
 d2 = nn.Power(2)(d)
-sigma2_inv = nn.Power(-2)(sigma)
-exp_arg = nn.CMulTable()({d2, sigma2_inv})
-exp_arg = nn.Sum(2)(exp_arg)
-
-sigma_mm = nn.Log()(sigma)
-sigma_mm = nn.Sum(2)(sigma)
-loss_x = nn.CAddTable()({exp_arg, sigma_mm})
-loss_x = nn.AddConstant(0.5 * n_features * math.log((2 * math.pi)))(loss_x)
+loss_x = nn.Sum(2)(d2)
 
 x_prediction = nn.Reshape(28, 28)(mu)
 x_error = d
