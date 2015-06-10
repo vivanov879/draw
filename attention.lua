@@ -13,6 +13,7 @@ nngraph.setDebug(true)
 N = 2
 A = 2 
 h_dec_n = 100
+n_data = 5
 
 x = nn.Identity()()
 y = nn.Reshape(1,1)(x)
@@ -21,11 +22,6 @@ for i = 1, A do
   l[#l + 1] = nn.Copy()(y)  
 end
 z = nn.JoinTable(2)(l)
-l = {}
-for i = 1, A do 
-  l[#l + 1] = nn.Copy()(z)  
-end
-z = nn.JoinTable(3)(l) 
 duplicate = nn.gModule({x}, {z})
 
 
@@ -48,46 +44,40 @@ gx = nn.MulConstant((A + 1) / 2)(gx)
 gy = nn.MulConstant((A + 1) / 2)(gy)
 delta = nn.MulConstant((math.max(A,A)-1)/(N-1))(delta)
 
-ascending_x = nn.Identity()()
-ascending_y = nn.Identity()()
+ascending = nn.Identity()()
 
-filtered = {}
-
-for i = 1, N do
-  for j = 1, N do
-    mu_i = nn.CAddTable()({gx, nn.MulConstant(i - N/2 - 1/2)(delta)})
-    mu_j = nn.CAddTable()({gy, nn.MulConstant(j - N/2 - 1/2)(delta)})
-    mu_i = nn.MulConstant(-1)(mu_i)
-    mu_j = nn.MulConstant(-1)(mu_j)
-    d_i = nn.CAddTable()({mu_i, ascending_x})
-    d_j = nn.CAddTable()({mu_j, ascending_y})
-    d_i = nn.Power(2)(d_i)
-    d_j = nn.Power(2)(d_j)
-    exp_i = nn.CMulTable()({d_i, sigma})
-    exp_j = nn.CMulTable()({d_j, sigma})
-    exp_i = nn.Exp()(exp_i)
-    exp_j = nn.Exp()(exp_j)
-    filtered[#filtered + 1] = nn.View(n_data, 1)(nn.Sum(2)(nn.Sum(3)(nn.CMulTable()({exp_i, exp_j, x}))))
+function genr_filters(g)
+  filters = {}
+  for i = 1, N do
+      mu_i = nn.CAddTable()({g, nn.MulConstant(i - N/2 - 1/2)(delta)})
+      mu_i = nn.MulConstant(-1)(mu_i)
+      d_i = nn.CAddTable()({mu_i, ascending})
+      d_i = nn.Power(2)(d_i)
+      exp_i = nn.CMulTable()({d_i, sigma})
+      exp_i = nn.Exp()(exp_i)
+      exp_i = nn.View(n_data, 1, A)(exp_i)
+      filters[#filters + 1] = exp_i
   end
+  filterbank = nn.JoinTable(2)(filters)
+  return filterbank
 end
-    
-filtered_x = nn.JoinTable(2)(filtered)
-filtered_x = nn.Reshape(N, N)(filtered_x)
+
+filterbank_x = genr_filters(gx)
+filterbank_y = genr_filters(gy)
+patch = nn.MM()({filterbank_x, x})
+patch = nn.MM(false, true)({patch, filterbank_y})
 
 
-m = nn.gModule({x, h_dec, ascending_x, ascending_y}, {filtered_x})
+m = nn.gModule({x, h_dec, ascending}, {patch})
 
-ascending_x = torch.zeros(A, A)
-ascending_y = torch.zeros(A, A)
-for i = 1, A do 
-  for j = 1, A do 
-    ascending_x[i][j] = i
-    ascending_y[i][j] = j
+
+ascending = torch.zeros(n_data, A)
+for k = 1, n_data do
+  for i = 1, A do 
+      ascending[k][i] = i
   end
 end
 
-print(ascending_x)
-print(ascending_y)
 
 
 
