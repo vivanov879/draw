@@ -14,7 +14,7 @@ A = 2
 B = 2
 
 x = nn.Identity()()
-z = nn.Reshape(1,1)(x)
+z = nn.Replicate(2,1, 1)(x)
 m = nn.gModule({x}, {z})
 
 x = torch.rand(3,1)

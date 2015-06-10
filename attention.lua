@@ -15,14 +15,15 @@ A = 2
 h_dec_n = 100
 n_data = 5
 
-x = nn.Identity()()
-y = nn.Reshape(1,1)(x)
-l = {}
-for i = 1, A do 
-  l[#l + 1] = nn.Copy()(y)  
+function duplicate(x)
+  local y = nn.Reshape(1)(x)
+  local l = {}
+  for i = 1, A do 
+    l[#l + 1] = nn.Copy()(y)  
+  end
+  local z = nn.JoinTable(2)(l)
+  return z
 end
-z = nn.JoinTable(2)(l)
-duplicate = nn.gModule({x}, {z})
 
 
 x = nn.Identity()()
