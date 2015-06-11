@@ -63,7 +63,8 @@ m = nn.gModule({x, gx_raw, gy_raw, delta_raw, sigma_raw, ascending}, {patch})
 trainset = mnist.traindataset()
 testset = mnist.testdataset()
 
-x = torch.load('read_patches')
+--x = torch.load('read_patches')
+x = torch.ones(n_data, N, N)
 
 ascending = torch.zeros(n_data, A)
 for k = 1, n_data do
@@ -74,9 +75,9 @@ end
 
 
 gx = torch.zeros(n_data, A)
-gy = torch.zeros(n_data, A)
-sigma = torch.zeros(n_data, A)
-delta = torch.zeros(n_data, A)
+gy = torch.ones(n_data, A):mul(0.1)
+sigma = torch.ones(n_data, A):mul(0.6)
+delta = torch.ones(n_data, A):mul(10)
 
 z = m:forward({x, gx, gy, delta, sigma, ascending})
 

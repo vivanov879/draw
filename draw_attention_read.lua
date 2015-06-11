@@ -16,7 +16,7 @@ rnn_size = 200
 n_canvas = 28 * 28
 seq_length = 10
 
-N = 12
+N = 3
 A = 28
 h_dec_n = rnn_size
 n_data = 100
@@ -67,7 +67,7 @@ function genr_filters(g)
       exp_i = nn.CMulTable()({d_i, sigma})
       exp_i = nn.Exp()(exp_i)
       exp_i = nn.View(n_data, 1, A)(exp_i)
-      filters[#filters + 1] = exp_i
+      filters[#filters + 1] = nn.CMulTable()({exp_i, gamma})
   end
   filterbank = nn.JoinTable(2)(filters)
   return filterbank
@@ -225,7 +225,7 @@ function feval(x_arg)
       x[t] = features_input
       z[t], loss_z[t], lstm_c_enc[t], lstm_h_enc[t], patch = unpack(encoder_clones[t]:forward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}))
       x_prediction[t], x_error[t], lstm_c_dec[t], lstm_h_dec[t], canvas[t], loss_x[t] = unpack(decoder_clones[t]:forward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}))
-      --print(patch[1]:gt(0.5))
+      print(patch[1]:gt(0.5))
       
       loss = loss + torch.mean(loss_z[t]) + torch.mean(loss_x[t])
     end
