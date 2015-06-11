@@ -16,7 +16,7 @@ rnn_size = 200
 n_canvas = 28 * 28
 seq_length = 10
 
-N = 3
+N = 12
 A = 28
 h_dec_n = rnn_size
 n_data = 100
