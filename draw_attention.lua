@@ -12,13 +12,13 @@ nngraph.setDebug(true)
 
 n_features = 28 * 28
 n_z = 20
-rnn_size = 150
+rnn_size = 100
 n_canvas = 28 * 28
 seq_length = 50
 
 N = 3
 A = 28
-n_data = 100
+n_data = 10
 
 function duplicate(x)
   local y = nn.Reshape(1)(x)
@@ -259,6 +259,7 @@ function feval(x_arg)
     loss_x = {}
     canvas = {[0]=torch.rand(n_data, 28, 28)}
     x = {}
+    patch = {}
     
     
     local loss = 0
@@ -266,7 +267,7 @@ function feval(x_arg)
     for t = 1, seq_length do
       e[t] = torch.randn(n_data, n_z)
       x[t] = features_input
-      z[t], loss_z[t], lstm_c_enc[t], lstm_h_enc[t], patch = unpack(encoder_clones[t]:forward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}))
+      z[t], loss_z[t], lstm_c_enc[t], lstm_h_enc[t], patch[t] = unpack(encoder_clones[t]:forward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}))
       x_prediction[t], x_error[t], lstm_c_dec[t], lstm_h_dec[t], canvas[t], loss_x[t] = unpack(decoder_clones[t]:forward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1], ascending}))
       --print(patch[1]:gt(0.5))
       
@@ -292,14 +293,15 @@ function feval(x_arg)
     dx1 = {}
     dx2 = {}
     de = {}
+    dpatch = {}
     
     for t = seq_length,1,-1 do
       dloss_x[t] = torch.ones(n_data, 1)
       dloss_z[t] = torch.ones(n_data, 1)
       dx_prediction[t] = torch.zeros(n_data, 28, 28)
-      dpatch = torch.zeros(n_data, N, N)
+      dpatch[t] = torch.zeros(n_data, N, N)
       dx1[t], dz[t], dlstm_c_dec[t-1], dlstm_h_dec1[t-1], dcanvas[t-1], dascending1 = unpack(decoder_clones[t]:backward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}, {dx_prediction[t], dx_error[t], dlstm_c_dec[t], dlstm_h_dec[t], dcanvas[t], dloss_x[t]}))
-      dx2[t], dx_error[t-1], dlstm_c_enc[t-1], dlstm_h_enc[t-1], de[t], dlstm_h_dec2[t-1], dascending2 = unpack(encoder_clones[t]:backward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}, {dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t], dpatch}))
+      dx2[t], dx_error[t-1], dlstm_c_enc[t-1], dlstm_h_enc[t-1], de[t], dlstm_h_dec2[t-1], dascending2 = unpack(encoder_clones[t]:backward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}, {dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t], dpatch[t]}))
       dlstm_h_dec[t-1] = dlstm_h_dec1[t-1] + dlstm_h_dec2[t-1]
     end
 
@@ -314,7 +316,7 @@ end
 --
 optim_state = {learningRate = 1e-2}
 
-for i = 1, 500 do
+for i = 1, 1000 do
   local _, loss = optim.adagrad(feval, params, optim_state)
 
   if i % 10 == 0 then
@@ -330,6 +332,7 @@ print(x[1][1]:gt(0.5))
 
 --что получаем со временем
 for t = 1, seq_length do
+  print(patch[t][1]:gt(0.5))
   print(x_prediction[t][1]:gt(0.5))
 end
 --print(x_prediction[2]:gt(0.5))
