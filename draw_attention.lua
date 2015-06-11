@@ -339,3 +339,14 @@ end
 
 torch.save('x_prediction', x_prediction)
 
+
+--generation
+for t = 1, seq_length do
+      e[t] = torch.randn(n_data, n_z)
+      x[t] = features_input
+      z[t] = torch.randn(n_data, n_z)
+      x_prediction[t], x_error[t], lstm_c_dec[t], lstm_h_dec[t], canvas[t], loss_x[t] = unpack(decoder_clones[t]:forward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1], ascending}))
+  end
+
+torch.save('x_generation', x_prediction)
+
