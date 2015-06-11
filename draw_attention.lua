@@ -16,7 +16,7 @@ rnn_size = 200
 n_canvas = 28 * 28
 seq_length = 10
 
-N = 3
+N = 12
 A = 28
 n_data = 100
 
@@ -127,8 +127,7 @@ encoder.name = 'encoder'
 
 
 --decoder
-x_raw = nn.Identity()()
-x = nn.Reshape(28 * 28)(x_raw)
+x = nn.Identity()()
 z = nn.Identity()()
 prev_h = nn.Identity()()
 prev_c = nn.Identity()()
@@ -157,13 +156,49 @@ next_h           = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
 
 
 -- write layer
+gx = duplicate(nn.Linear(rnn_size, 1)(next_h))
+gx = duplicate(nn.Linear(rnn_size, 1)(next_h))
+gy = duplicate(nn.Linear(rnn_size, 1)(next_h))
+delta = duplicate(nn.Linear(rnn_size, 1)(next_h))
+gamma = duplicate(nn.Linear(rnn_size, 1)(next_h))
+sigma = duplicate(nn.Linear(rnn_size, 1)(next_h))
+delta = nn.Exp()(delta)
+gamma = nn.Exp()(gamma)
+sigma = nn.Exp()(sigma)
+sigma = nn.Power(-2)(sigma)
+sigma = nn.MulConstant(-1/2)(sigma)
+gx = nn.AddConstant(1)(gx)
+gy = nn.AddConstant(1)(gy)
+gx = nn.MulConstant((A + 1) / 2)(gx)
+gy = nn.MulConstant((A + 1) / 2)(gy)
+delta = nn.MulConstant((math.max(A,A)-1)/(N-1))(delta)
+
+ascending = nn.Identity()()
+
+function genr_filters(g)
+  filters = {}
+  for i = 1, N do
+      mu_i = nn.CAddTable()({g, nn.MulConstant(i - N/2 - 1/2)(delta)})
+      mu_i = nn.MulConstant(-1)(mu_i)
+      d_i = nn.CAddTable()({mu_i, ascending})
+      d_i = nn.Power(2)(d_i)
+      exp_i = nn.CMulTable()({d_i, sigma})
+      exp_i = nn.Exp()(exp_i)
+      exp_i = nn.View(n_data, 1, A)(exp_i)
+      filters[#filters + 1] = nn.CMulTable()({exp_i, gamma})
+  end
+  filterbank = nn.JoinTable(2)(filters)
+  return filterbank
+end
+
+filterbank_x = genr_filters(gx)
+filterbank_y = genr_filters(gy)
 next_w = nn.Linear(rnn_size, N * N)(next_h)
-
-
-
-write_layer = nn.Linear(rnn_size, n_canvas)(next_h)
-
+next_w = nn.Reshape(N, N)(next_w)
+write_layer = nn.MM(true, false)({filterbank_y, next_w})
+write_layer = nn.MM()({write_layer, filterbank_x})
 --write layer end
+
 next_canvas = nn.CAddTable()({prev_canvas, write_layer})
 
 mu = nn.Sigmoid()(next_canvas)
@@ -171,12 +206,14 @@ mu = nn.Sigmoid()(next_canvas)
 neg_mu = nn.MulConstant(-1)(mu)
 d = nn.CAddTable()({x, neg_mu})
 d2 = nn.Power(2)(d)
-loss_x = nn.Sum(2)(d2)
+loss_x = nn.Sum(3)(d2)
+loss_x = nn.Sum(2)(loss_x)
+
 
 x_prediction = nn.Reshape(28, 28)(mu)
 x_error = nn.Reshape(28, 28)(d)
 
-decoder = nn.gModule({x_raw, z, prev_c, prev_h, prev_canvas}, {x_prediction, x_error, next_c, next_h, next_canvas, loss_x})
+decoder = nn.gModule({x, z, prev_c, prev_h, prev_canvas, ascending}, {x_prediction, x_error, next_c, next_h, next_canvas, loss_x})
 decoder.name = 'decoder'
 
 
@@ -220,7 +257,7 @@ function feval(x_arg)
     x_prediction = {}
     loss_z = {}
     loss_x = {}
-    canvas = {[0]=torch.rand(n_data, n_canvas)}
+    canvas = {[0]=torch.rand(n_data, 28, 28)}
     x = {}
     
     
@@ -230,7 +267,7 @@ function feval(x_arg)
       e[t] = torch.randn(n_data, n_z)
       x[t] = features_input
       z[t], loss_z[t], lstm_c_enc[t], lstm_h_enc[t], patch = unpack(encoder_clones[t]:forward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}))
-      x_prediction[t], x_error[t], lstm_c_dec[t], lstm_h_dec[t], canvas[t], loss_x[t] = unpack(decoder_clones[t]:forward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}))
+      x_prediction[t], x_error[t], lstm_c_dec[t], lstm_h_dec[t], canvas[t], loss_x[t] = unpack(decoder_clones[t]:forward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1], ascending}))
       print(patch[1]:gt(0.5))
       
       loss = loss + torch.mean(loss_z[t]) + torch.mean(loss_x[t])
@@ -250,7 +287,7 @@ function feval(x_arg)
     dx_prediction = {}
     dloss_z = {}
     dloss_x = {}
-    dcanvas = {[seq_length] = torch.zeros(n_data, n_canvas)}
+    dcanvas = {[seq_length] = torch.zeros(n_data, 28, 28)}
     dz = {}
     dx1 = {}
     dx2 = {}
@@ -261,8 +298,8 @@ function feval(x_arg)
       dloss_z[t] = torch.ones(n_data, 1)
       dx_prediction[t] = torch.zeros(n_data, 28, 28)
       dpatch = torch.zeros(n_data, N, N)
-      dx1[t], dz[t], dlstm_c_dec[t-1], dlstm_h_dec1[t-1], dcanvas[t-1] = unpack(decoder_clones[t]:backward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}, {dx_prediction[t], dx_error[t], dlstm_c_dec[t], dlstm_h_dec[t], dcanvas[t], dloss_x[t]}))
-      dx2[t], dx_error[t-1], dlstm_c_enc[t-1], dlstm_h_enc[t-1], de[t], dlstm_h_dec2[t-1], dascending = unpack(encoder_clones[t]:backward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}, {dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t], dpatch}))
+      dx1[t], dz[t], dlstm_c_dec[t-1], dlstm_h_dec1[t-1], dcanvas[t-1], dascending1 = unpack(decoder_clones[t]:backward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}, {dx_prediction[t], dx_error[t], dlstm_c_dec[t], dlstm_h_dec[t], dcanvas[t], dloss_x[t]}))
+      dx2[t], dx_error[t-1], dlstm_c_enc[t-1], dlstm_h_enc[t-1], de[t], dlstm_h_dec2[t-1], dascending2 = unpack(encoder_clones[t]:backward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}, {dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t], dpatch}))
       dlstm_h_dec[t-1] = dlstm_h_dec1[t-1] + dlstm_h_dec2[t-1]
     end
 
