@@ -77,7 +77,7 @@ filterbank_x = genr_filters(gx)
 filterbank_y = genr_filters(gy)
 patch = nn.MM()({filterbank_x, x})
 patch = nn.MM(false, true)({patch, filterbank_y})
-patch_error = nn.MM()({filterbank_x, x_error_prev}):annotate{name='nota'}
+patch_error = nn.MM()({filterbank_x, x_error_prev})
 patch_error = nn.MM(false, true)({patch_error, filterbank_y})
 read_input = nn.JoinTable(3)({patch, patch_error})
 read_input = nn.Reshape(2 * N * N)(read_input)
@@ -123,7 +123,7 @@ loss_z = nn.CAddTable()({mu_squared, sigma_squared, minus_log_sigma})
 loss_z = nn.AddConstant(-1)(loss_z)
 loss_z = nn.MulConstant(0.5)(loss_z)
 loss_z = nn.Sum(2)(loss_z)
-encoder = nn.gModule({x, x_error_prev, prev_c, prev_h, e, h_dec_prev, ascending}, {z, loss_z, next_c, next_h})
+encoder = nn.gModule({x, x_error_prev, prev_c, prev_h, e, h_dec_prev, ascending}, {z, loss_z, next_c, next_h, patch})
 encoder.name = 'encoder'
 
 
@@ -223,8 +223,9 @@ function feval(x_arg)
     for t = 1, seq_length do
       e[t] = torch.randn(n_data, n_z)
       x[t] = features_input
-      z[t], loss_z[t], lstm_c_enc[t], lstm_h_enc[t] = unpack(encoder_clones[t]:forward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}))
+      z[t], loss_z[t], lstm_c_enc[t], lstm_h_enc[t], patch = unpack(encoder_clones[t]:forward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}))
       x_prediction[t], x_error[t], lstm_c_dec[t], lstm_h_dec[t], canvas[t], loss_x[t] = unpack(decoder_clones[t]:forward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}))
+      --print(patch[1]:gt(0.5))
       
       loss = loss + torch.mean(loss_z[t]) + torch.mean(loss_x[t])
     end
@@ -253,8 +254,9 @@ function feval(x_arg)
       dloss_x[t] = torch.ones(n_data, 1)
       dloss_z[t] = torch.ones(n_data, 1)
       dx_prediction[t] = torch.zeros(n_data, 28, 28)
+      dpatch = torch.zeros(n_data, N, N)
       dx1[t], dz[t], dlstm_c_dec[t-1], dlstm_h_dec1[t-1], dcanvas[t-1] = unpack(decoder_clones[t]:backward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1]}, {dx_prediction[t], dx_error[t], dlstm_c_dec[t], dlstm_h_dec[t], dcanvas[t], dloss_x[t]}))
-      dx2[t], dx_error[t-1], dlstm_c_enc[t-1], dlstm_h_enc[t-1], de[t], dlstm_h_dec2[t-1], dascending = unpack(encoder_clones[t]:backward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}, {dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t]}))
+      dx2[t], dx_error[t-1], dlstm_c_enc[t-1], dlstm_h_enc[t-1], de[t], dlstm_h_dec2[t-1], dascending = unpack(encoder_clones[t]:backward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}, {dz[t], dloss_z[t], dlstm_c_enc[t], dlstm_h_enc[t], dpatch}))
       dlstm_h_dec[t-1] = dlstm_h_dec1[t-1] + dlstm_h_dec2[t-1]
     end
 
