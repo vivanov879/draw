@@ -18,7 +18,7 @@ seq_length = 50
 
 N = 3
 A = 28
-n_data = 10
+n_data = 20
 
 function duplicate(x)
   local y = nn.Reshape(1)(x)
