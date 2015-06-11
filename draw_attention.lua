@@ -12,11 +12,11 @@ nngraph.setDebug(true)
 
 n_features = 28 * 28
 n_z = 20
-rnn_size = 200
+rnn_size = 150
 n_canvas = 28 * 28
-seq_length = 10
+seq_length = 50
 
-N = 12
+N = 3
 A = 28
 n_data = 100
 
@@ -268,7 +268,7 @@ function feval(x_arg)
       x[t] = features_input
       z[t], loss_z[t], lstm_c_enc[t], lstm_h_enc[t], patch = unpack(encoder_clones[t]:forward({x[t], x_error[t-1], lstm_c_enc[t-1], lstm_h_enc[t-1], e[t], lstm_h_dec[t-1], ascending}))
       x_prediction[t], x_error[t], lstm_c_dec[t], lstm_h_dec[t], canvas[t], loss_x[t] = unpack(decoder_clones[t]:forward({x[t], z[t], lstm_c_dec[t-1], lstm_h_dec[t-1], canvas[t-1], ascending}))
-      print(patch[1]:gt(0.5))
+      --print(patch[1]:gt(0.5))
       
       loss = loss + torch.mean(loss_z[t]) + torch.mean(loss_x[t])
     end
@@ -314,7 +314,7 @@ end
 --
 optim_state = {learningRate = 1e-2}
 
-for i = 1, 200 do
+for i = 1, 500 do
   local _, loss = optim.adagrad(feval, params, optim_state)
 
   if i % 10 == 0 then
