@@ -18,7 +18,6 @@ seq_length = 10
 
 N = 3
 A = 28
-h_dec_n = rnn_size
 n_data = 100
 
 function duplicate(x)
@@ -38,12 +37,12 @@ x_error_prev = nn.Identity()()
 
 --read
 h_dec_prev = nn.Identity()()
-gx = duplicate(nn.Linear(h_dec_n, 1)(h_dec_prev))
-gx = duplicate(nn.Linear(h_dec_n, 1)(h_dec_prev))
-gy = duplicate(nn.Linear(h_dec_n, 1)(h_dec_prev))
-delta = duplicate(nn.Linear(h_dec_n, 1)(h_dec_prev))
-gamma = duplicate(nn.Linear(h_dec_n, 1)(h_dec_prev))
-sigma = duplicate(nn.Linear(h_dec_n, 1)(h_dec_prev))
+gx = duplicate(nn.Linear(rnn_size, 1)(h_dec_prev))
+gx = duplicate(nn.Linear(rnn_size, 1)(h_dec_prev))
+gy = duplicate(nn.Linear(rnn_size, 1)(h_dec_prev))
+delta = duplicate(nn.Linear(rnn_size, 1)(h_dec_prev))
+gamma = duplicate(nn.Linear(rnn_size, 1)(h_dec_prev))
+sigma = duplicate(nn.Linear(rnn_size, 1)(h_dec_prev))
 delta = nn.Exp()(delta)
 gamma = nn.Exp()(gamma)
 sigma = nn.Exp()(sigma)
@@ -159,6 +158,7 @@ next_h           = nn.CMulTable()({out_gate, nn.Tanh()(next_c)})
 
 -- write layer
 next_w = nn.Linear(rnn_size, N * N)(next_h)
+
 
 
 write_layer = nn.Linear(rnn_size, n_canvas)(next_h)
