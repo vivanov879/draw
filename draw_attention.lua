@@ -335,10 +335,7 @@ for t = 1, seq_length do
   print(patch[t][1]:gt(0.5))
   print(x_prediction[t][1]:gt(0.5))
 end
---print(x_prediction[2]:gt(0.5))
---print(x[2]:gt(0.5))
---print(x_prediction[3]:gt(0.5))
---print(x[3]:gt(0.5))
---print(x_prediction[4]:gt(0.5))
---print(x[4]:gt(0.5))
+
+
+torch.save('x_prediction', x_prediction)
 
