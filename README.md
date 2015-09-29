@@ -18,7 +18,7 @@ Example output by plot_results.lua
 ![th visualize_word_vectors.lua](https://github.com/vivanov879/draw/blob/master/Plot_results_example.png)
 
 Example output by plot_results_no_binarization.lua
-![th visualize_word_vectors.lua](https://github.com/vivanov879/draw/blob/master/Plot_results_no_binarization_example.png)
+![th visualize_word_vectors.lua](https://github.com/vivanov879/draw/blob/master/Plot_result_no_binarization_example.png)
 
 
 
